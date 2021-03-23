@@ -12,7 +12,9 @@ from random import seed
 from random import sample
 import random
 from line_profiler import LineProfiler
+import time
 
+start_time = time.time()
 #seed random generator
 seed(1)
 T = 77 #time horizon
@@ -26,7 +28,6 @@ delta = np.array([[1, 0], [1, 0], [0, 1]])
 
 class Patient:
     def __init__(self, ICD_type, start_week, adm_type, start_state):
-        #self.name = name
         self.ICD_type = ICD_type
         self.start_week = start_week
         self.adm_type = adm_type
@@ -35,18 +36,18 @@ class Patient:
 ###################################
 ####### INPUT REQUIRED: input resource capacities here #######
 ###################################
-#xi = []
+xi = np.array([102186.0, 4122.0])
 
 ###################################
 ####### INPUT REQUIRED: input time in which cancellation policy is ON here#######
 ###################################
-#T_policy = [i for i in range(x,y)]
+T_policy = [i for i in range(2,8)]
         
 #reading in all input data
 ###################################
 ####### INPUT REQUIRED: input data file here #######
 ###################################
-#fn = 'input_data.xlsx' 
+fn = 'input_data.xlsx' 
 
 ###################################
 ####### INPUT REQUIRED #######
@@ -755,4 +756,5 @@ test2 = pd.DataFrame(G_Star_beds)
 test2.to_excel(writer, 'G_Star_beds')
 
 writer.save()   
-        
+end_time = time.time()
+print("Total Time: ", end_time - start_time )        
