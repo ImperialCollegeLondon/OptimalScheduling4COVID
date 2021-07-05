@@ -46,7 +46,7 @@ T_policy = [i for i in range(2,8)]
 ###################################
 ####### INPUT REQUIRED: input data file here #######
 ###################################
-fn = '../data/input_data.xlsx' 
+fn = 'input_data.xlsx' 
 
 ###################################
 ####### INPUT REQUIRED #######
@@ -743,7 +743,7 @@ outputs = [Admitted_E_type_time, Admitted_N_type_time, cost_type_time, YLL_type_
 cols = P_Group
 
 i = 0
-writer = pd.ExcelWriter('../results/G_output.xlsx')
+writer = pd.ExcelWriter('../output/G_output.xlsx')
 for o in outputs:
     test = pd.DataFrame(o, columns = cols)
     test.to_excel(writer, output_list[i])

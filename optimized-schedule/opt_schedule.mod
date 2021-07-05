@@ -38,12 +38,12 @@ param pi_0 {p in PATIENT_GROUPS, s in SEVERITY_STATES, s1 in SEVERITY_STATES, a 
 param delta {SEVERITY_STATES, RESOURCES} default 0; # Patient resource requirements (0 for H and D). This parameter applies to patients staying longer than 3.5 days.
 param delta_0 {PATIENT_GROUPS, SEVERITY_STATES, RESOURCES, ADMISSION_TYPES} default 0.5; # Patient resource requirements (0 for H and D) in the first 3.5 days. This parameter applies to patients staying less than 3.5 days. Unless explicitly declared, it is set to 0.5 (i.e. half-week resource consumption, for patients staying more >= 3.5 days)
 param xi {RESOURCES}; # Availability of resources
-param xi_add {RESOURCES}; # Availability of additional resources
+param xi_add {RESOURCES} default 0; # Availability of additional resources
 param lambda {PATIENT_GROUPS}; # Years of life lost
 param lambda2 {PATIENT_GROUPS}; # Years of life lost (scenario A - just used for post-computation)
 param theta {TIMES, PATIENT_GROUPS} default 0; # Proportion of people transferring out of ICD_50 into ICD_1,4,5,15 at time t;
 param cost {PATIENT_GROUPS, ADMISSION_TYPES} default 0; # average cost per patient group. Cost is 0 if no inflow for that group
-param pi_f {TIMES, PATIENT_GROUPS, ADMISSION_TYPES} default 0; # proportion of frail patients per each time and patient group
+param pi_f {TIMES, PATIENT_GROUPS, ADMISSION_TYPES, FRAILTY} default 0; # proportion of frail patients per each time and patient group
 
 # Parameters to initialize model
 param w0 {PATIENT_GROUPS} default 0; # (remove default 0?) Patients waiting at the beginning of the planning horizon
@@ -77,16 +77,16 @@ var bin_var {TIMES} binary;
 
 # Initialization:
 subject to initialize_w_f {p in PATIENT_GROUPS}:
-	w [0,p,"F"] = w0 [p] * pi_f [0,p,"N"];
+	w [0,p,"F"] = w0 [p] * pi_f [0,p,"N", "F"];
 
 subject to initialize_w_nf {p in PATIENT_GROUPS}:
-	w [0,p,"NF"] = w0 [p] * (1 - pi_f [0,p,"N"]);
+	w [0,p,"NF"] = w0 [p] * pi_f [0,p,"N", "NF"];
 
 subject to initialize_y_f {p in PATIENT_GROUPS, s in SEVERITY_STATES, a in ADMISSION_TYPES}:
-	y [0,p,s,a,"F"] = y0 [p,s,a] * pi_f [0,p,a];
+	y [0,p,s,a,"F"] = y0 [p,s,a] * pi_f [0,p,a, "F"];
 	
 subject to initialize_y_nf {p in PATIENT_GROUPS, s in SEVERITY_STATES, a in ADMISSION_TYPES}:
-	y [0,p,s,a,"NF"] = y0 [p,s,a] * (1 - pi_f [0,p,a]);
+	y [0,p,s,a,"NF"] = y0 [p,s,a] * pi_f [0,p,a, "NF"];
 
 subject to yll:
 	YearsofLifeLost = sum {t in TIMES, p in PATIENT_GROUPS, a in ADMISSION_TYPES, f in FRAILTY} (lambda [p] * (y [t,p,"D",a,f] + z_prime [t,p,"D",a,f]));
@@ -115,10 +115,10 @@ subject to total_slack:
 #	sum {p in PATIENT_GROUPS, a in ADMISSION_TYPES} (z_prime [t,p,s,a,f] + sum {s1 in {"G", "G_STAR","C"}} (x_prime [t,p,s1,s,a,f] + x [t,p,s1,s,a,f])) <= 10000 * (1-bin_frail[t]);
 	
 subject to waiting_patients {t in TIMES, p in PATIENT_GROUPS, f in FRAILTY: t <> T}:
-	w [t+1,p,f] = phi_1 [t,p,"N"] * pi_f [t,p,"N"] + w[t,p,f] * (1 - pi_w[p]) - z[t,p,"N",f];
+	w [t+1,p,f] = phi_2 [t,p,"N"] * pi_f [t,p,"N", f] + w[t,p,f] * (1 - pi_w[p]) - z[t,p,"N",f];
 	
 subject to admitted_emergencies {t in TIMES, p in PATIENT_GROUPS diff {"ICD51_AGE1", "ICD51_AGE2", "ICD51_AGE3", "BUNDLE_50_PATIENT_GROUPS_AGE1", "BUNDLE_50_PATIENT_GROUPS_AGE2", "BUNDLE_50_PATIENT_GROUPS_AGE3"}, f in FRAILTY}:
-	z [t,p,"E",f] + z_prime [t,p,"D","E",f] = phi_1 [t,p,"E"] * pi_f [t,p,"E"] + w[t,p,f] * pi_w[p];
+	z [t,p,"E",f] + z_prime [t,p,"D","E",f] = phi_2 [t,p,"E"] * pi_f [t,p,"E", f] + w[t,p,f] * pi_w[p];
 	
 # Some patients might be denied CC upon admission. In this case, they are admitted to G*
 subject to admission_cc {t in TIMES, p in PATIENT_GROUPS, a in ADMISSION_TYPES, f in FRAILTY}:
@@ -169,22 +169,22 @@ subject to resource_availability {t in TIMES, r in RESOURCES}:
 
 ## Bundling (should it be deprecated?)
 subject to admitted_emergencies_51_AGE1 {t in TIMES, f in FRAILTY}:
-	z [t, "ICD51_AGE1","E", f] + z_prime [t,"ICD51_AGE1","D","E", f] = phi_1 [t,"ICD51_AGE1","E"] * pi_f [t,"ICD51_AGE1","E"] + sum {m in BUNDLE_51_PATIENT_GROUPS_AGE1} (w [t,m,f] * pi_w [m]) + w[t, "ICD50_AGE1",f]* pi_w["ICD50_AGE1"]*theta [t, "ICD50_AGE1"]; 
+	z [t, "ICD51_AGE1","E", f] + z_prime [t,"ICD51_AGE1","D","E", f] = phi_2 [t,"ICD51_AGE1","E"] * pi_f [t,"ICD51_AGE1","E", f] + sum {m in BUNDLE_51_PATIENT_GROUPS_AGE1} (w [t,m,f] * pi_w [m]) + w[t, "ICD50_AGE1",f]* pi_w["ICD50_AGE1"]*theta [t, "ICD50_AGE1"]; 
 
 subject to admitted_emergencies_51_AGE2 {t in TIMES, f in FRAILTY}:
-	z [t, "ICD51_AGE2","E",f] + z_prime [t,"ICD51_AGE2","D","E",f] = phi_1 [t,"ICD51_AGE2","E"] * pi_f [t,"ICD51_AGE2","E"] + sum {m in BUNDLE_51_PATIENT_GROUPS_AGE2} (w [t,m,f] * pi_w [m]) + w[t, "ICD50_AGE2",f]* pi_w["ICD50_AGE2"]*theta [t, "ICD50_AGE2"]; 
+	z [t, "ICD51_AGE2","E",f] + z_prime [t,"ICD51_AGE2","D","E",f] = phi_2 [t,"ICD51_AGE2","E"] * pi_f [t,"ICD51_AGE2","E", f] + sum {m in BUNDLE_51_PATIENT_GROUPS_AGE2} (w [t,m,f] * pi_w [m]) + w[t, "ICD50_AGE2",f]* pi_w["ICD50_AGE2"]*theta [t, "ICD50_AGE2"]; 
 
 subject to admitted_emergencies_51_AGE3 {t in TIMES, f in FRAILTY}:
-	z [t, "ICD51_AGE3","E",f] + z_prime [t,"ICD51_AGE3","D","E",f] = phi_1 [t,"ICD51_AGE3","E"] * pi_f [t,"ICD51_AGE3","E"] + sum {m in BUNDLE_51_PATIENT_GROUPS_AGE3} (w [t,m,f] * pi_w [m]) + w[t, "ICD50_AGE3",f]* pi_w["ICD50_AGE3"]*theta [t, "ICD50_AGE3"]; 
+	z [t, "ICD51_AGE3","E",f] + z_prime [t,"ICD51_AGE3","D","E",f] = phi_2 [t,"ICD51_AGE3","E"] * pi_f [t,"ICD51_AGE3","E",f] + sum {m in BUNDLE_51_PATIENT_GROUPS_AGE3} (w [t,m,f] * pi_w [m]) + w[t, "ICD50_AGE3",f]* pi_w["ICD50_AGE3"]*theta [t, "ICD50_AGE3"]; 
 
 subject to admitted_emergencies_50_AGE1 {t in TIMES, p in BUNDLE_50_PATIENT_GROUPS_AGE1, f in FRAILTY}:
-	z [t,p,"E",f] + z_prime [t,p,"D","E",f] = phi_1 [t,p,"E"] * pi_f [t,p,"E"] + w[t,"ICD50_AGE1",f] * pi_w["ICD50_AGE1"] * theta[t, p];
+	z [t,p,"E",f] + z_prime [t,p,"D","E",f] = phi_2 [t,p,"E"] * pi_f [t,p,"E",f] + w[t,"ICD50_AGE1",f] * pi_w["ICD50_AGE1"] * theta[t, p];
 
 subject to admitted_emergencies_50_AGE2 {t in TIMES, p in BUNDLE_50_PATIENT_GROUPS_AGE2, f in FRAILTY}:
-	z [t,p,"E",f] + z_prime [t,p,"D","E",f] = phi_1 [t,p,"E"] * pi_f [t,p,"E"] + w[t,"ICD50_AGE2",f] * pi_w["ICD50_AGE2"] * theta[t, p];
+	z [t,p,"E",f] + z_prime [t,p,"D","E",f] = phi_2 [t,p,"E"] * pi_f [t,p,"E", f] + w[t,"ICD50_AGE2",f] * pi_w["ICD50_AGE2"] * theta[t, p];
 	
 subject to admitted_emergencies_50_AGE3 {t in TIMES, p in BUNDLE_50_PATIENT_GROUPS_AGE3, f in FRAILTY}:
-	z [t,p,"E",f] + z_prime [t,p,"D","E",f] = phi_1 [t,p,"E"] * pi_f [t,p,"E"] + w[t,"ICD50_AGE3",f] * pi_w["ICD50_AGE3"] * theta[t, p];
+	z [t,p,"E",f] + z_prime [t,p,"D","E",f] = phi_2 [t,p,"E"] * pi_f [t,p,"E", f] + w[t,"ICD50_AGE3",f] * pi_w["ICD50_AGE3"] * theta[t, p];
 
 /*
 ##  For Pareto frontier
@@ -194,8 +194,11 @@ subject to Pareto_constraint:
 	TotalCost <= Param_Pareto;
 */
 
+
 # Objective
  minimize obj: YearsofLifeLost;
+
+#write opt_schedule_SM.lp;
 
 solve;
 
