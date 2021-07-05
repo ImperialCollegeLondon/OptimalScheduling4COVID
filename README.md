@@ -80,30 +80,15 @@ The runtime can be significantly longer using GLPK/GLPSOL.
 
 # 2. Cancellation Policy
 
-The cancellation policy is a simulation code implemented in python (v. 3.7.4).
+The cancellation policy is a simulation code implemented in python.
+The 24 Standard Policy scenarios reported in the paper can be run by following the detailed instructions contained in the file simulations_instructions.xlsx.
 
 ## Content of the folder
 
 - canc_pol_sim.py: python simulation model
 - input_data.xlsx: input data in Excel format
+- simulations_instructions.xlsx: instructions to run the 24 Standard Policy scenarios
 - output/G_output.xlsx: output folder containing an example output file
-
-## Requirements
-
-Packages (version):
-- numpy (1.16.5)
-- pandas (0.25.1)
-- math (1.1.0)
-- random (1.1.0)
-
-## Installation/running instructions
-
-- To adjust capacity, follow instructions at line 35.
-- To adjust the time period in which the government policy is on, follow instruction at line 40.
-- Modify input file at line 48.
-- Adjust lines 56, 57 depending on the scenario that you are reading in from the input file.
-- To account for reduction in emergencies due to behavioural changes during the pandemic, modify according to instructions in line 169.
-- To switch to an alternative government strategy, modify according to instructions in line 569.
 
 ## Runtime
 

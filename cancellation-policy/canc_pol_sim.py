@@ -11,10 +11,9 @@ import pandas as pd
 from random import seed
 from random import sample
 import random
-from line_profiler import LineProfiler
-import time
+import openpyxl
 
-start_time = time.time()
+
 #seed random generator
 seed(1)
 T = 77 #time horizon
@@ -37,17 +36,17 @@ class Patient:
 ####### INPUT REQUIRED: input resource capacities here #######
 ###################################
 xi = np.array([102186.0, 4122.0])
-
+#xi = np.array([117869.0, 4939.0]) #extended capacity
 ###################################
 ####### INPUT REQUIRED: input time in which cancellation policy is ON here#######
 ###################################
 T_policy = [i for i in range(2,8)]
-        
+#T_policy.extend([i for i in range(2,8)])        
 #reading in all input data
 ###################################
 ####### INPUT REQUIRED: input data file here #######
 ###################################
-fn = 'input_data.xlsx' 
+fn = '../data/input_data.xlsx' 
 
 ###################################
 ####### INPUT REQUIRED #######
@@ -55,20 +54,20 @@ fn = 'input_data.xlsx'
 ####### line 569 for implementing which cancellation policy is ON: policy 1,2 cancels 100% electives in weeks in T_policy; policy 3,4 cencels 75% electives in weeks in T_policy
 ###################################
 
-phi_n = pd.read_excel(fn, sheet_name="phi3", nrows = T+1)
-phi_e = pd.read_excel(fn, sheet_name="phi3", skiprows = np.arange(1, T+2))
+phi_n = pd.read_excel(fn, sheet_name="phi3", nrows = T+1, engine='openpyxl')
+phi_e = pd.read_excel(fn, sheet_name="phi3", skiprows = np.arange(1, T+2), engine='openpyxl')
 
-pi_W = pd.read_excel(fn, sheet_name = "pi_x")
-frail_N_prop = pd.read_excel(fn, sheet_name = "frailty", nrows = T+1)
-frail_E_prop = pd.read_excel(fn, sheet_name = "frailty", skiprows = np.arange(1, T+2))
-pi_x_data = pd.read_excel(fn, sheet_name = "pi_x")
+pi_W = pd.read_excel(fn, sheet_name = "pi_x", engine='openpyxl')
+frail_N_prop = pd.read_excel(fn, sheet_name = "frailty", nrows = T+1, engine='openpyxl')
+frail_E_prop = pd.read_excel(fn, sheet_name = "frailty", skiprows = np.arange(1, T+2), engine='openpyxl')
+pi_x_data = pd.read_excel(fn, sheet_name = "pi_x", engine='openpyxl')
 pi_x = np.zeros(len(P_Group))
 
 for s in P_Group:
     if (pi_x_data.loc[(pi_x_data['p'] == s) & (pi_x_data['a'] == "N")].empty == 0):
         pi_x[P_Group.index(s)] = pi_x_data.loc[(pi_x_data['p'] == s) & (pi_x_data['a'] == "N")].values[0,2]
 
-pi_y = pd.read_excel(fn, sheet_name = "pi_y")
+pi_y = pd.read_excel(fn, sheet_name = "pi_y", engine='openpyxl')
 
 pi_y_N = pi_y[(pi_y['week'] == 1.5) & (pi_y['a'] == "N")]
 pi_y_E = pi_y[(pi_y['week'] == 1.5) & (pi_y['a'] == "E")]
@@ -76,17 +75,17 @@ pi_y_E = pi_y[(pi_y['week'] == 1.5) & (pi_y['a'] == "E")]
 pi_y_0_N = pi_y[(pi_y['week'] == 0.5) & (pi_y['a'] == "N")]
 pi_y_0_E = pi_y[(pi_y['week'] == 0.5) & (pi_y['a'] == "E")]
 
-pi_z_N = pd.read_excel(fn, sheet_name="pi_z", nrows = T+1)
-pi_z_E = pd.read_excel(fn, sheet_name="pi_z", skiprows = np.arange(1, T+2))
-delta_0_N_G = pd.read_excel(fn, sheet_name="delta_0_N_G")
-delta_0_N_C = pd.read_excel(fn, sheet_name="delta_0_N_C")
-delta_0_E_G = pd.read_excel(fn, sheet_name="delta_0_E_G")
-delta_0_E_C = pd.read_excel(fn, sheet_name="delta_0_E_C")
+pi_z_N = pd.read_excel(fn, sheet_name="pi_z", nrows = T+1, engine='openpyxl')
+pi_z_E = pd.read_excel(fn, sheet_name="pi_z", skiprows = np.arange(1, T+2), engine='openpyxl')
+delta_0_N_G = pd.read_excel(fn, sheet_name="delta_0_N_G", engine='openpyxl')
+delta_0_N_C = pd.read_excel(fn, sheet_name="delta_0_N_C", engine='openpyxl')
+delta_0_E_G = pd.read_excel(fn, sheet_name="delta_0_E_G", engine='openpyxl')
+delta_0_E_C = pd.read_excel(fn, sheet_name="delta_0_E_C", engine='openpyxl')
 
-y_0 = pd.read_excel(fn, sheet_name = "y0")
-x_0 = pd.read_excel(fn, sheet_name = "x0")
+y_0 = pd.read_excel(fn, sheet_name = "y0", engine='openpyxl')
+x_0 = pd.read_excel(fn, sheet_name = "x0", engine='openpyxl')
 
-cost = pd.read_excel(fn, sheet_name = "costs")
+cost = pd.read_excel(fn, sheet_name = "costs", engine='openpyxl')
 cost_type_N = np.zeros(len(P_Group))
 cost_type_E = np.zeros(len(P_Group))
 
@@ -96,7 +95,7 @@ for s in P_Group:
     if (cost.loc[(cost['p'] == s) & (cost['a'] == "N")].empty == 0):
             cost_type_N[P_Group.index(s)] = cost.loc[(cost['p'] == s) & (cost['a'] == "N")].values[0,3]
 
-lambda_yll = pd.read_excel(fn, sheet_name = "lambda")
+lambda_yll = pd.read_excel(fn, sheet_name = "lambda", engine='openpyxl')
 
 tp_E = np.zeros((len(P_Group), 3, 5)) 
 
@@ -744,7 +743,7 @@ outputs = [Admitted_E_type_time, Admitted_N_type_time, cost_type_time, YLL_type_
 cols = P_Group
 
 i = 0
-writer = pd.ExcelWriter('G_output.xlsx')
+writer = pd.ExcelWriter('../results/G_output.xlsx')
 for o in outputs:
     test = pd.DataFrame(o, columns = cols)
     test.to_excel(writer, output_list[i])
@@ -755,6 +754,4 @@ test1.to_excel(writer, 'idle_resources')
 test2 = pd.DataFrame(G_Star_beds)                              
 test2.to_excel(writer, 'G_Star_beds')
 
-writer.save()   
-end_time = time.time()
-print("Total Time: ", end_time - start_time )        
+writer.save()         
